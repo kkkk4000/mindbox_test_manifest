@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+spec:
+  replicas: 4 # 4 пода справляются с пиковой нагрузкой
+  strategy:
+    type: RollingUpdate # постепенное обновление обеспечит отказоустойчивый деплоймент
+    rollingUpdate:
+      maxSurge: 1 # максимальное количество подов, которое может быть создано сверх желаемого количества (можно указать в процентах)
+      maxUnavailable: 1 # максимальное количество подов, которые могут быть недоступны во время обновления (можно указать в процентах)
+  selector:
+    matchLabels:
+      app: test-app 
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-app
+        image: registry/test-app:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m # 0.1 CPU
+            memory: 128Mi # по памяти всегда “ровно” в районе 128M memory
+          limits:
+            cpu: 1 # лимит CPU
+            memory: 128Mi # потребление всегла "ровное"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10 # даём время на инициализацию
+          periodSeconds: 10 # проверяем доступность каждые 10 секунд
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30 # даём время начать работать
+          periodSeconds: 20 # проверяем доступность каждые 20 секунд
+      nodeSelector:
+        zone: "ru-central1-a" # выбор зоны
