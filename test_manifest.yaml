@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -45,8 +46,8 @@ spec:
         zone: "ru-central1-a" # выбор зоны
 
 ---
-apiVersion: autoscaling/v2beta2 # для экономии ресурсов используем автоскейлер для сокращения потребления ресурсов
-kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2beta2 
+kind: HorizontalPodAutoscaler # для экономии ресурсов используем автоскейлер для сокращения потребления в ночное время (слабый трафик)
 metadata:
   name: test-app-hpa
 spec:
@@ -68,6 +69,7 @@ spec:
       - type: Percent
         value: 50 # уменьшаем количество подов при потреблении ресурсов менее, чем на 50% от желаемого
         periodSeconds: 300 # период проверки политики
+
 ---
 apiVersion: v1
 kind: Service
@@ -79,5 +81,5 @@ spec:
   ports:
   - name: http
     port: 80  # порт сервиса
-    targetPort: 80 # порт контейнеров
+    targetPort: 80 # порт подов
   type: LoadBalancer # тип сервиса LoadBalancer для обеспечения доступности снаружи кластера
