@@ -43,3 +43,41 @@ spec:
           periodSeconds: 20 # проверяем доступность каждые 20 секунд
       nodeSelector:
         zone: "ru-central1-a" # выбор зоны
+
+---
+apiVersion: autoscaling/v2beta2 # для экономии ресурсов используем автоскейлер для сокращения потребления ресурсов
+kind: HorizontalPodAutoscaler
+metadata:
+  name: test-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: test-app
+  minReplicas: 2 # минимальное количество подов
+  maxReplicas: 4 # максимальное количество подов
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu # ориентируемся на cpu, так как потребление памяти не меняется
+      targetAverageUtilization: 50 # выбираем значение, при котором нужно добавлять поды
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60 # время ожидания перед уменьшением количества подов
+      policies:
+      - type: Percent
+        value: 50 # уменьшаем количество подов при потреблении ресурсов менее, чем на 50% от желаемого
+        periodSeconds: 300 # период проверки политики
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-app
+spec:
+  selector:
+    app: test-app # выбираем поды по лейблу, на которые будет распространяться трафик
+  ports:
+  - name: http
+    port: 80  # порт сервиса
+    targetPort: 80 # порт контейнеров
+  type: LoadBalancer # тип сервиса LoadBalancer для обеспечения доступности снаружи кластера
